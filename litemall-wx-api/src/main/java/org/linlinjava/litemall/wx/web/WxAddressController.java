@@ -35,32 +35,39 @@ public class WxAddressController {
      *
      * @param userId 用户ID
      * @return 收货地址列表
-     *   成功则
-     *  {
-     *      errno: 0,
-     *      errmsg: '成功',
-     *      data: xxx
-     *  }
-     *   失败则 { errno: XXX, errmsg: XXX }
+     * 成功则
+     * {
+     * errno: 0,
+     * errmsg: '成功',
+     * data: xxx
+     * }
+     * 失败则 { errno: XXX, errmsg: XXX }
      */
     @GetMapping("list")
     public Object list(@LoginUser Integer userId) {
-        if(userId == null){
+        if (userId == null) {
             return ResponseUtil.unlogin();
         }
         List<LitemallAddress> addressList = addressService.queryByUid(userId);
         List<Map<String, Object>> addressVoList = new ArrayList<>(addressList.size());
-        for(LitemallAddress address : addressList){
+        for (LitemallAddress address : addressList) {
             Map<String, Object> addressVo = new HashMap<>();
             addressVo.put("id", address.getId());
             addressVo.put("name", address.getName());
             addressVo.put("mobile", address.getMobile());
             addressVo.put("isDefault", address.getIsDefault());
-            String province = regionService.findById(address.getProvinceId()).getName();
-            String city = regionService.findById(address.getCityId()).getName();
-            String area = regionService.findById(address.getAreaId()).getName();
-            String addr = address.getAddress();
-            String detailedAddress = province + city + area + " " + addr;
+            String detailedAddress = "";
+            if (address.getProvinceId().equals(99999) || address.getCityId().equals(88888)
+                    || address.getAreaId().equals(77777)) {
+                detailedAddress = address.getAddress();
+            } else {
+                String province = regionService.findById(address.getProvinceId()).getName();
+                String city = regionService.findById(address.getCityId()).getName();
+                String area = regionService.findById(address.getAreaId()).getName();
+                String addr = address.getAddress();
+                detailedAddress = province + city + area + " " + addr;
+            }
+
             addressVo.put("detailedAddress", detailedAddress);
 
             addressVoList.add(addressVo);
@@ -72,37 +79,37 @@ public class WxAddressController {
      * 收货地址详情
      *
      * @param userId 用户ID
-     * @param id 收获地址ID
+     * @param id     收获地址ID
      * @return 收货地址详情
-     *   成功则
-     *  {
-     *      errno: 0,
-     *      errmsg: '成功',
-     *      data:
-     *        {
-     *           id: xxx,
-     *           name: xxx,
-     *           provinceId: xxx,
-     *           cityId: xxx,
-     *           districtId: xxx,
-     *           mobile: xxx,
-     *           address: xxx,
-     *           isDefault: xxx,
-     *           provinceName: xxx,
-     *           cityName: xxx,
-     *           areaName: xxx
-     *        }
-     *  }
-     *   失败则 { errno: XXX, errmsg: XXX }
+     * 成功则
+     * {
+     * errno: 0,
+     * errmsg: '成功',
+     * data:
+     * {
+     * id: xxx,
+     * name: xxx,
+     * provinceId: xxx,
+     * cityId: xxx,
+     * districtId: xxx,
+     * mobile: xxx,
+     * address: xxx,
+     * isDefault: xxx,
+     * provinceName: xxx,
+     * cityName: xxx,
+     * areaName: xxx
+     * }
+     * }
+     * 失败则 { errno: XXX, errmsg: XXX }
      */
     @GetMapping("detail")
     public Object detail(@LoginUser Integer userId, @NotNull Integer id) {
-        if(userId == null){
+        if (userId == null) {
             return ResponseUtil.unlogin();
         }
 
         LitemallAddress address = addressService.findById(id);
-        if(address == null){
+        if (address == null) {
             return ResponseUtil.badArgumentValue();
         }
 
@@ -115,40 +122,42 @@ public class WxAddressController {
         data.put("mobile", address.getMobile());
         data.put("address", address.getAddress());
         data.put("isDefault", address.getIsDefault());
-        String pname = regionService.findById(address.getProvinceId()).getName();
-        data.put("provinceName", pname);
-        String cname = regionService.findById(address.getCityId()).getName();
-        data.put("cityName", cname);
-        String dname = regionService.findById(address.getAreaId()).getName();
-        data.put("areaName", dname);
+        if(!address.getProvinceId().equals(99999)){
+            String pname = regionService.findById(address.getProvinceId()).getName();
+            data.put("provinceName", pname);
+            String cname = regionService.findById(address.getCityId()).getName();
+            data.put("cityName", cname);
+            String dname = regionService.findById(address.getAreaId()).getName();
+            data.put("areaName", dname);
+        }
         return ResponseUtil.ok(data);
     }
 
     /**
      * 添加或更新收货地址
      *
-     * @param userId 用户ID
+     * @param userId  用户ID
      * @param address 用户收货地址
      * @return 添加或更新操作结果
-     *   成功则 { errno: 0, errmsg: '成功' }
-     *   失败则 { errno: XXX, errmsg: XXX }
+     * 成功则 { errno: 0, errmsg: '成功' }
+     * 失败则 { errno: XXX, errmsg: XXX }
      */
     @PostMapping("save")
     public Object save(@LoginUser Integer userId, @RequestBody LitemallAddress address) {
-        if(userId == null){
+        if (userId == null) {
             return ResponseUtil.unlogin();
         }
-        if(address == null){
+        if (address == null) {
             return ResponseUtil.badArgument();
         }
 
         // 测试收货手机号码是否正确
         String mobile = address.getMobile();
-        if(!RegexUtil.isMobileExact(mobile)){
+        if (!RegexUtil.isMobileExact(mobile)) {
             return ResponseUtil.badArgument();
         }
 
-        if(address.getIsDefault()){
+        if (address.getIsDefault()) {
             // 重置其他收获地址的默认选项
             addressService.resetDefault(userId);
         }
@@ -168,22 +177,22 @@ public class WxAddressController {
     /**
      * 删除收货地址
      *
-     * @param userId 用户ID
+     * @param userId  用户ID
      * @param address 用户收货地址
      * @return 删除结果
-     *   成功则 { errno: 0, errmsg: '成功' }
-     *   失败则 { errno: XXX, errmsg: XXX }
+     * 成功则 { errno: 0, errmsg: '成功' }
+     * 失败则 { errno: XXX, errmsg: XXX }
      */
     @PostMapping("delete")
     public Object delete(@LoginUser Integer userId, @RequestBody LitemallAddress address) {
-        if(userId == null){
+        if (userId == null) {
             return ResponseUtil.unlogin();
         }
-        if(address == null){
+        if (address == null) {
             return ResponseUtil.badArgument();
         }
         Integer id = address.getId();
-        if(id == null){
+        if (id == null) {
             return ResponseUtil.badArgumentValue();
         }
 

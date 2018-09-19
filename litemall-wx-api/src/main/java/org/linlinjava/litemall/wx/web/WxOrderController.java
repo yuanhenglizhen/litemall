@@ -107,6 +107,10 @@ public class WxOrderController {
         Integer provinceId = litemallAddress.getProvinceId();
         Integer cityId = litemallAddress.getCityId();
         Integer areaId = litemallAddress.getAreaId();
+        if(provinceId.equals(99999) || cityId.equals(88888)||areaId.equals(77777)){
+            return litemallAddress.getAddress();
+        }
+
         String provinceName = regionService.findById(provinceId).getName();
         String cityName = regionService.findById(cityId).getName();
         String areaName = regionService.findById(areaId).getName();
@@ -509,7 +513,7 @@ public class WxOrderController {
             // 设置订单已取消状态
             order.setOrderStatus(OrderUtil.STATUS_CANCEL);
             order.setEndTime(LocalDateTime.now());
-            orderService.update(order);
+            orderService.updateById(order);
 
             // 商品货品数量增加
             List<LitemallOrderGoods> orderGoodsList = orderGoodsService.queryByOid(orderId);
@@ -733,7 +737,7 @@ public class WxOrderController {
 
         // 设置订单申请退款状态
         order.setOrderStatus(OrderUtil.STATUS_REFUND);
-        orderService.update(order);
+        orderService.updateById(order);
 
         //TODO 发送邮件和短信通知，这里采用异步发送
         // 有用户申请退款，邮件通知运营人员
@@ -778,7 +782,7 @@ public class WxOrderController {
 
         order.setOrderStatus(OrderUtil.STATUS_CONFIRM);
         order.setConfirmTime(LocalDateTime.now());
-        orderService.update(order);
+        orderService.updateById(order);
         return ResponseUtil.ok();
     }
 
